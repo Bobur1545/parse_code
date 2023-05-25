@@ -1,6 +1,6 @@
 <?php
 define('SITE_URL', 'https://kun.uz');
-//include_once 'db.php';
+include_once 'db.php';
 include_once 'simple_html_dom.php';
 
 //print_r($_SERVER);
@@ -20,6 +20,8 @@ function curlGetPage($url, $referer = 'https://google.com/')
 
     return $response;
 }
+
+//bu saytni addressini topib olish uchun
 $page = curlGetPage(SITE_URL.'/uz/news/list');
 $html = str_get_html($page);
 
@@ -29,14 +31,44 @@ foreach ($html->find('#news-list a') AS $element){
     $p = $element->find('.news-title', 0);
     $time = $element->find('.news-date', 0);
     $posts[] = [
-      'link' => $link->href,
+        'link' => $link->href,
         'title' => $p->plaintext,
         'time' => $time->plaintext,
     ];
 }
 
+//yuqoridagi topib olingan saytlardan faqat bittasini tutib olish uchun
+foreach ($posts as $post) {
+    $birinchi_sayt[] = SITE_URL . $post['link'];
+    $link1 = $birinchi_sayt[0];
+    break;
+}
+
+
+//o'sha tutib olingan saytdagi malumotlarni ekranga chiqarish uchun
+$page_into_site = curlGetPage($link1);
+$html_into_site = str_get_html($page_into_site);
+
+$posts_into_site = [];
+foreach ($html_into_site->find('.single-layout__center') AS $element_site){
+    $date = $element_site->find('.date', 0);
+    $title = $element_site->find('.single-header__title', 0);
+    $img = $element_site->find('.main-img img', 0);
+    $text = $element_site->find('.single-content p', 0);
+
+    $data = [
+        'date' => $date->plaintext,
+        'title' => $title->plaintext,
+        'img' => $img->src,
+        'text' => $text->plaintext,
+    ];
+
+    if (!$data['date'])
+        continue;
+
+    $posts_into_site[] = $data;
+}
 
 echo '<pre>';
-print_r($posts);
+print_r($posts_into_site);
 echo '</pre>';
-
