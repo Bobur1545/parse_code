@@ -3,7 +3,6 @@ define('SITE_URL', 'https://kun.uz');
 include_once 'db.php';
 include_once 'simple_html_dom.php';
 
-//print_r($_SERVER);
 function curlGetPage($url, $referer = 'https://google.com/')
 {
     $ch = curl_init();
@@ -28,13 +27,7 @@ $html = str_get_html($page);
 $posts = [];
 foreach ($html->find('#news-list a') AS $element){
     $link = $element;
-    $p = $element->find('.news-title', 0);
-    $time = $element->find('.news-date', 0);
-    $posts[] = [
-        'link' => $link->href,
-        'title' => $p->plaintext,
-        'time' => $time->plaintext,
-    ];
+    $posts[] = [ 'link' => $link->href ];
 }
 
 //yuqoridagi topib olingan saytlardan faqat bittasini tutib olish uchun
@@ -56,58 +49,54 @@ foreach ($birinchi_sayt as $link1) {
         $text = $element_site->find('.single-content', 0);
 
         $data = [
-            'date' => ($date) ? $date->plaintext : '',
-            'title' => ($title) ? $title->plaintext : '',
-            'img' => ($img) ? $img->src : '',
-            'text' => ($text) ? $text->plaintext : '',
+            'date' => $date->plaintext,
+            'title' => $title->plaintext,
+            'img' => $img->src,
+            'text' => $text->plaintext,
         ];
 
         if (!$data['date'])
             continue;
 
         $posts_into_site[] = $data;
+
     }
 
     // Ma'lumotlarni saqlash yoki ko'rsatish kabi $posts_into_site bilan biror narsa qilish
-
     // Shunnab chiqarsa boladi: Joriy $link1 uchun ma'lumotlarni chop etish
-    echo "Data for $link1:<br>";
+    echo "malumotlar shu linkdagi: $link1:<br>";
     foreach ($posts_into_site as $post) {
+
+        //bu kod vaqtini togri boshqarish uchun
+        $dateTimeParts = explode(" / ", $post['date']); // Qiymatni vaqt va sanaga bo'lib ajratib olamiz
+        $timePart = trim($dateTimeParts[0]); // Vaqt qismi
+        $datePart = trim($dateTimeParts[1]); // Sana qismi
+        if (strpos($timePart, ":") !== false && $datePart) {
+            // Vaqt va sana kelsa
+            $datetime = date("Y-m-d H:i:s", strtotime("$datePart $timePart"));
+        } else  {
+            // Faqat vaqt kelsa
+            $currentDate = date("Y-m-d"); // Joriy sana
+            $datetime = date("Y-m-d H:i:s", strtotime("$currentDate $timePart"));
+        }
+
         echo "Date: {$post['date']}<br>";
         echo "Title: {$post['title']}<br>";
         echo "Image: {$post['img']}<br>";
         echo "Text: {$post['text']}<br><br>";
+
+        if (!empty($post['img'])) {
+            $url = $post['img']; // Rasm URL manzili
+            $imageName = uniqid("image_") . ".jpg"; // Fayl nomi generatsiyalash
+            $savePath = __DIR__ . "/images/$imageName"; // Saqlash uchun papka va fayl nomi
+            $imageData = file_get_contents($url);
+            file_put_contents($savePath, $imageData);
+
+            $db->query("INSERT IGNORE INTO posts (`data`, `title`, `img`, `text`)
+                VALUES ('$datetime', '{$post['title']}', '$imageName', '{$post['text']}' )");
+        }
+
     }
     echo "<hr>";
 }
-
-
-//
-////o'sha tutib olingan saytdagi malumotlarni ekranga chiqarish uchun
-//    $page_into_site = curlGetPage($link1);
-//    $html_into_site = str_get_html($page_into_site);
-//
-//    $posts_into_site = [];
-//    foreach ($html_into_site->find('.single-layout__center') AS $element_site){
-//        $date = $element_site->find('.date', 0);
-//        $title = $element_site->find('.single-header__title', 0);
-//        $img = $element_site->find('.main-img img', 0);
-//        $text = $element_site->find('.single-content', 0);
-//
-//        $data = [
-//            'date' => $date->plaintext,
-//            'title' => $title->plaintext,
-//            'img' => $img->src,
-//            'text' => $text->plaintext,
-//        ];
-//
-//        if (!$data['date'])
-//            continue;
-//
-//        $posts_into_site[] = $data;
-//    }
-
-//echo '<pre>';
-//print_r($posts_into_site);
-//echo '</pre>';
 
