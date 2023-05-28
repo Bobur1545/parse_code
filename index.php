@@ -33,8 +33,6 @@ foreach ($html->find('#news-list a') AS $element){
 //yuqoridagi topib olingan saytlardan faqat bittasini tutib olish uchun
 foreach ($posts as $post) {
     $birinchi_sayt[] = SITE_URL . $post['link'];
-//    $link1 = $birinchi_sayt[2];
-//    break;
 }
 
 foreach ($birinchi_sayt as $link1) {
@@ -45,7 +43,7 @@ foreach ($birinchi_sayt as $link1) {
     foreach ($html_into_site->find('.single-layout__center') as $element_site) {
         $date = $element_site->find('.date', 0);
         $title = $element_site->find('.single-header__title', 0);
-        $img = $element_site->find('.main-img img', 0);
+        $img = $element_site->find('.main-img img, .image img', 0);
         $text = $element_site->find('.single-content', 0);
 
         $data = [
@@ -62,7 +60,6 @@ foreach ($birinchi_sayt as $link1) {
 
     }
 
-    // Ma'lumotlarni saqlash yoki ko'rsatish kabi $posts_into_site bilan biror narsa qilish
     // Shunnab chiqarsa boladi: Joriy $link1 uchun ma'lumotlarni chop etish
     echo "malumotlar shu linkdagi: $link1:<br>";
     foreach ($posts_into_site as $post) {
@@ -82,13 +79,18 @@ foreach ($birinchi_sayt as $link1) {
 
         echo "Date: {$post['date']}<br>";
         echo "Title: {$post['title']}<br>";
-        echo "Image: {$post['img']}<br>";
+        echo "Image: {$post['img']} <br>";
         echo "Text: {$post['text']}<br><br>";
 
+//        bu kod rasmlarni toza nom barib images degan papkaga saqlagan holda ularni bazaga yozish uchun
         if (!empty($post['img'])) {
             $url = $post['img']; // Rasm URL manzili
-            $imageName = uniqid("image_") . ".jpg"; // Fayl nomi generatsiyalash
+            $imageName = "image_". $datetime . ".jpg"; // Fayl nomi generatsiyalash
             $savePath = __DIR__ . "/images/$imageName"; // Saqlash uchun papka va fayl nomi
+            if (file_exists($savePath)) //agar shu papkada yuklab olingan nomli rasm bolsa uni qayta yuklamay olish uchun
+            {
+                unlink($savePath); // Faylni o'chirib ketish
+            }
             $imageData = file_get_contents($url);
             file_put_contents($savePath, $imageData);
 
