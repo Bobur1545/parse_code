@@ -1,7 +1,9 @@
 <?php
-define('SITE_URL', 'https://kun.uz');
+
+const SITE_URL = 'https://kun.uz';
 include_once 'db.php';
 include_once 'simple_html_dom.php';
+
 
 function curlGetPage($url, $referer = 'https://google.com/')
 {
@@ -21,13 +23,13 @@ function curlGetPage($url, $referer = 'https://google.com/')
 }
 
 //bu saytni addressini topib olish uchun
-$page = curlGetPage(SITE_URL.'/uz/news/list');
+$page = curlGetPage(SITE_URL . '/uz/news/list');
 $html = str_get_html($page);
 
 $posts = [];
-foreach ($html->find('#news-list a') AS $element){
+foreach ($html->find('#news-list a') as $element) {
     $link = $element;
-    $posts[] = [ 'link' => $link->href ];
+    $posts[] = ['link' => $link->href];
 }
 
 //yuqoridagi topib olingan saytlardan faqat bittasini tutib olish uchun
@@ -71,7 +73,7 @@ foreach ($birinchi_sayt as $link1) {
         if (strpos($timePart, ":") !== false && $datePart) {
             // Vaqt va sana kelsa
             $datetime = date("Y-m-d H:i:s", strtotime("$datePart $timePart"));
-        } else  {
+        } else {
             // Faqat vaqt kelsa
             $currentDate = date("Y-m-d"); // Joriy sana
             $datetime = date("Y-m-d H:i:s", strtotime("$currentDate $timePart"));
@@ -82,21 +84,42 @@ foreach ($birinchi_sayt as $link1) {
         echo "Image: {$post['img']} <br>";
         echo "Text: {$post['text']}<br><br>";
 
-//        bu kod rasmlarni toza nom barib images degan papkaga saqlagan holda ularni bazaga yozish uchun
-        if (!empty($post['img'])) {
-            $url = $post['img']; // Rasm URL manzili
-            $imageName = "image_". $datetime . ".jpg"; // Fayl nomi generatsiyalash
-            $savePath = __DIR__ . "/images/$imageName"; // Saqlash uchun papka va fayl nomi
-            if (file_exists($savePath)) //agar shu papkada yuklab olingan nomli rasm bolsa uni qayta yuklamay olish uchun
-            {
-                unlink($savePath); // Faylni o'chirib ketish
-            }
-            $imageData = file_get_contents($url);
-            file_put_contents($savePath, $imageData);
+        /*// Prepare the query to fetch column names
+        $query = "SELECT slug FROM posts where slug like %" . $link . "%";
 
-            $db->query("INSERT IGNORE INTO posts (`data`, `title`, `img`, `text`)
-                VALUES ('$datetime', '{$post['title']}', '$imageName', '{$post['text']}' )");
+
+        // Prepare and execute the query
+        $stmt = $db->prepare($query);
+        $stmt->execute();*/
+
+// Fetch column names
+
+        $query = "SELECT slug FROM posts WHERE slug LIKE :element"; // your_table jadval nomi va column_name ustun nomi bilan almashtiring
+        $stmt = $db->prepare($query);
+        $stmt->bindValue(':element', '%' . $link1 . '%');
+        $stmt->execute();
+        $data = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+// Output the column names
+
+        if ($data != $link1) {
+            //        bu kod rasmlarni toza nom barib images degan papkaga saqlagan holda ularni bazaga yozish uchun
+            if (!empty($post['img'])) {
+                $url = $post['img']; // Rasm URL manzili
+                $imageName = "image_" . uniqid() . ".jpg"; // Fayl nomi generatsiyalash
+                $savePath = __DIR__ . "/images/$imageName"; // Saqlash uchun papka va fayl nomi
+                if (file_exists($savePath)) //agar shu papkada yuklab olingan nomli rasm bolsa uni qayta yuklamay olish uchun
+                {
+                    unlink($savePath); // Faylni o'chirib ketish
+                }
+                $imageData = file_get_contents($url);
+                file_put_contents($savePath, $imageData);
+
+                $db->query("INSERT IGNORE INTO posts (`date`, `title`, `img`, `text`,`slug`)
+                VALUES ('$datetime', '{$post['title']}', '$imageName', '{$post['text']}','$link1' )");
+            }
         }
+
 
     }
     echo "<hr>";
